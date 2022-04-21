@@ -101,7 +101,7 @@ LOCAL_DESTDIR := $(airsdk-hello.payload-dir)/services
 
 LOCAL_SRC_FILES := services/main.cpp \
 	services/native/processing.cpp services/native/sample.cpp \
-	services/singulair/test.cpp #services/singulair/nn_processing.cpp
+	services/singulair/test.cpp services/singulair/nn_processing.cpp
 # services/native/test.cpp
 
 LOCAL_LIBRARIES := \

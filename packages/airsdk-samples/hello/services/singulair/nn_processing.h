@@ -1,13 +1,28 @@
+/**
+ * Copyright (C) 2021 Parrot Drones SAS
+ */
+
 #pragma once
+
+namespace nn_process{
 
 struct processing;
 
 struct processing_input {
-    int x;
+	const struct vipc_frame *frame;
+
+	struct {
+		float x;
+		float y;
+		float z;
+	} position_global;
 };
 
 struct processing_output {
-    int x;
+	struct timespec ts;
+	float x, y, z;
+	float depth_mean;
+	float confidence;
 };
 
 /**
@@ -59,3 +74,4 @@ int processing_step(struct processing *self,
  */
 int processing_get_output(struct processing *self,
 			  struct processing_output *output);
+}

@@ -41,6 +41,8 @@ class Mission(AbstractMission):
         self.ext_ui_msgs = None
         self.cv_service_msgs_channel = None
         self.cv_service_msgs = None
+        self.nn_service_msgs_channel = None
+        self.nn_service_msgs = None
         self.gdnc_grd_mode_msgs = None
         self.observer = None
         self.dbg_observer = None
@@ -86,6 +88,15 @@ class Mission(AbstractMission):
             self.cv_service_msgs_channel, hello_cv_service_messages, True
         )
 
+        # Create Neural Network service channel
+        self.nn_service_msgs_channel = self.mc.start_client_channel(
+            "unix:/tmp/hello-nn-service"
+        )
+
+        # Attach Neural Network service messages
+        self.nn_service_msgs = self.mc.attach_client_service_pair(
+            self.nn_service_msgs_channel, hello_cv_service_messages, True
+        )
         # For forwarding, observe messages using an observer
         self.observer = self.mc.observe(
             {
@@ -118,7 +129,7 @@ class Mission(AbstractMission):
         ############
         # Start Computer Vision service processing
         self.cv_service_msgs.cmd.sender.processing_start()
-        self.cv_service_msgs.cmd.sender.nn_processing_start()
+        self.nn_service_msgs.cmd.sender.nn_processing_start()
 
     def _on_connected(self, channel):
         if channel == self.env.airsdk_channel:
@@ -148,6 +159,7 @@ class Mission(AbstractMission):
         ############
         # Stop Computer Vision service processing
         self.cv_service_msgs.cmd.sender.processing_stop()
+        self.nn_service_msgs.cmd.sender.processing_stop()
 
         ####################################
         # Messages / communication cleanup #
@@ -163,7 +175,8 @@ class Mission(AbstractMission):
         # Detach Computer Vision service messages
         self.mc.detach_client_service_pair(self.cv_service_msgs)
         self.cv_service_msgs = None
-
+        self.mc.detach_client_service_pair(self.nn_service_msgs)
+        self.nn_service_msgs = None
         # Detach Guidance ground mode messages
         self.mc.detach_client_service_pair(self.gdnc_grd_mode_msgs)
         self.gdnc_grd_mode_msgs = None
@@ -171,7 +184,8 @@ class Mission(AbstractMission):
         # Stop Computer Vision service channel
         self.mc.stop_channel(self.cv_service_msgs_channel)
         self.cv_service_msgs_channel = None
-
+        self.mc.stop_channel(self.nn_service_msgs_channel)
+        self.nn_service_msgs_channel = None
         # Detach mission UI messages
         self.ext_ui_msgs.detach()
 
