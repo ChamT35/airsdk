@@ -25,7 +25,7 @@ ULOG_DECLARE_TAG(ULOG_TAG);
 
 namespace test {
 
-#define MSGHUB_ADDR "unix:/tmp/hello-cv-nn_service"
+#define MSGHUB_ADDR "unix:/tmp/hello-cv-service"
 
 class HelloServiceCommandHandler : public ::samples::hello::cv_service::
 					   messages::msghub::CommandHandler {
@@ -75,7 +75,13 @@ static volatile int stop;
 static void context_clean(struct context *ctx)
 {
     int res = 0;
+
     ULOGI("CLEAN");
+	if (ctx->processing != NULL) {
+		processing_destroy(ctx->processing);
+		ctx->processing = NULL;
+	}
+
 	if (ctx->processing_evt != NULL) {
 		res = pomp_evt_detach_from_loop(ctx->processing_evt, ctx->loop);
 		if (res < 0)
@@ -85,13 +91,15 @@ static void context_clean(struct context *ctx)
 			ULOG_ERRNO("pomp_evt_destroy", -res);
 		ctx->processing_evt = NULL;
 	}
+	delete ctx->msg;
+	ctx->msg = NULL;
 }
 
 static int context_start(struct context *ctx)
 {
     ULOGI("START");
 
-		/* msg */
+	/* msg */
 	ctx->msg_channel =
 		ctx->msg->startServerChannel(pomp::Address(MSGHUB_ADDR), 0666);
 	if (ctx->msg_channel == nullptr) {
@@ -114,7 +122,7 @@ static int context_stop(struct context *ctx)
 	/* Processing */
 	processing_stop(ctx->processing);
 	/* Stop vipc and processing */
-	ctx->msg_cmd_handler.processingStop(::google::protobuf::Empty());
+	ctx->msg_cmd_handler.nnProcessingStop(::google::protobuf::Empty());
 
 	/* msg */
 	ctx->msg->detachMessageSender(&ctx->msg_evt_sender);
@@ -143,6 +151,14 @@ static int context_init(struct context *ctx)
     int res = 0;
     ULOGI("INIT");
     
+	/* Create message hub */
+	ctx->msg = new msghub::MessageHub(&s_ctx.loop, nullptr);
+	if (ctx->msg == nullptr) {
+		res = -ENOMEM;
+		ULOG_ERRNO("msg_new", -res);
+		goto error;
+	}
+
 	/* Create processing notification event */
 	ctx->processing_evt = pomp_evt_new();
 	if (ctx->processing_evt == NULL) {
@@ -183,6 +199,7 @@ static void sighandler(int signum)
 void HelloServiceCommandHandler::nnProcessingStart(
 	const ::google::protobuf::Empty &args)
 {
+	ULOGI("VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV");
 	int res = 0;
 
 	/* Background thread processing */
@@ -200,6 +217,7 @@ error:
 void HelloServiceCommandHandler::nnProcessingStop(
 	const ::google::protobuf::Empty &args)
 {
+
 	/* Background thread processing */
 	processing_stop(mCtx->processing);
 
@@ -208,7 +226,6 @@ void HelloServiceCommandHandler::nnProcessingStop(
 int test()
 {
 	int res = 0;
-	ULOGI("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH");
 	/* Initialize context */
 	res = context_init(&s_ctx);
 	if (res < 0)

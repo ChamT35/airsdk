@@ -118,6 +118,7 @@ class Mission(AbstractMission):
         ############
         # Start Computer Vision service processing
         self.cv_service_msgs.cmd.sender.processing_start()
+        self.cv_service_msgs.cmd.sender.nn_processing_start()
 
     def _on_connected(self, channel):
         if channel == self.env.airsdk_channel:

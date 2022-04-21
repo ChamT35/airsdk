@@ -282,7 +282,7 @@ static void processing_evt_cb(struct pomp_evt *evt, void *userdata)
 		ud->msg_evt_sender.close(message);
 		ud->is_close = true;
 	}
-	if (output.depth_meaprocessing_evt_n >= FAR_DEPTH
+	if (output.depth_mean >= FAR_DEPTH
 	    && ud->previous_depth_mean < FAR_DEPTH && ud->is_close) {
 		const ::google::protobuf::Empty message;
 		ud->msg_evt_sender.far(message);
@@ -553,8 +553,6 @@ static void sighandler(int signum)
 int sample()
 {
 	int res = 0;
-
-
 
 	/* Initialize context */
 	res = context_init(&s_ctx);
