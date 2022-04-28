@@ -12,7 +12,7 @@ message Config {
 // Union of all possible commands of this package.
 message Command {
     oneof id {
-        google.protobuf.Empty empty = 1;
+        google.protobuf.Empty take_photo = 1;
     }
 }
 
