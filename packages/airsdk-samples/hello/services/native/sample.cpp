@@ -23,6 +23,8 @@ ULOG_DECLARE_TAG(ULOG_TAG);
 #include <google/protobuf/empty.pb.h>
 #include <samples/hello/cv-service/messages.msghub.h>
 
+#include <test/arsdk/camera.msghub.h>
+
 #include "processing.h"
 
 namespace sample {
@@ -32,6 +34,7 @@ namespace sample {
 #define TLM_SECTION_OUT_RATE 1000
 #define TLM_SECTION_OUT_COUNT 10
 #define MSGHUB_ADDR "unix:/tmp/hello-cv-service"
+#define MSGHUB_CAMERA_ADDR "unix:/tmp/video-media2"
 #define CLOSE_DEPTH 0.8f /* [m] */
 #define FAR_DEPTH 1.2f   /* [m] */
 
@@ -81,7 +84,10 @@ private:
 struct context {
 	using HelloServiceEventSender =
 		::samples::hello::cv_service::messages::msghub::EventSender;
-
+	using CameraCommandSender =
+		::arsdk::camera::msghub::CommandSender;
+	using CameraEventHandler =
+		::arsdk::camera::msghub::EventHandler;
 	/* Main loop of the program */
 	pomp::Loop loop;
 
@@ -120,6 +126,19 @@ struct context {
 
 	/* Message hub event sender */
 	HelloServiceEventSender msg_evt_sender;
+
+
+	/* Message hub */
+	msghub::MessageHub *msg_camera;
+
+	/* Message hub channel */
+	msghub::Channel *msg_channel_camera;
+
+	/* Message hub command handler */
+	CameraEventHandler msg_camera_evt_handler;
+
+	/* Message hub event sender */
+	CameraCommandSender msg_camera_cmd_sender;
 
 	/* Previous depth mean value */
 	float previous_depth_mean;
@@ -229,6 +248,26 @@ static int context_start(struct context *ctx)
 	ctx->msg->attachMessageHandler(&ctx->msg_cmd_handler);
 	ctx->msg->attachMessageSender(&ctx->msg_evt_sender, ctx->msg_channel);
 
+	/* msg Camera */
+	ctx->msg_channel_camera =
+		ctx->msg_camera->startServerChannel(pomp::Address(MSGHUB_CAMERA_ADDR), 0666);
+	if (ctx->msg_channel_camera == nullptr) {
+		ULOGE("Failed to start server channel on '%s'", MSGHUB_ADDR);
+		return -EPERM;
+	}
+
+	ctx->msg_camera->attachMessageHandler(&ctx->msg_camera_evt_handler);
+	ctx->msg_camera->attachMessageSender(&ctx->msg_camera_cmd_sender, ctx->msg_channel_camera);
+
+	// /*#################################################################
+	// 						TESTING TAKEIMG PHOTO
+	//   #################################################################*/
+
+	ULOGW("TAKING PHOTO START");
+	const ::arsdk::camera::Command::StartPhoto photo;
+	ctx->msg_camera_cmd_sender.startPhoto(photo);
+	ULOGW("TAKING PHOTO STOP");
+
 	return 0;
 }
 
@@ -246,6 +285,12 @@ static int context_stop(struct context *ctx)
 	ctx->msg->detachMessageHandler(&ctx->msg_cmd_handler);
 	ctx->msg->stop();
 	ctx->msg_channel = nullptr;
+
+	/* msg camera */
+	ctx->msg_camera->detachMessageSender(&ctx->msg_camera_cmd_sender);
+	ctx->msg_camera->detachMessageHandler(&ctx->msg_camera_evt_handler);
+	ctx->msg_camera->stop();
+	ctx->msg_channel_camera = nullptr;
 
 	return res;
 }
@@ -451,6 +496,14 @@ static int context_init(struct context *ctx)
 	/* Create message hub */
 	ctx->msg = new msghub::MessageHub(&s_ctx.loop, nullptr);
 	if (ctx->msg == nullptr) {
+		res = -ENOMEM;
+		ULOG_ERRNO("msg_new", -res);
+		goto error;
+	}
+
+	/* Create message hub */
+	ctx->msg_camera = new msghub::MessageHub(&s_ctx.loop, nullptr);
+	if (ctx->msg_camera == nullptr) {
 		res = -ENOMEM;
 		ULOG_ERRNO("msg_new", -res);
 		goto error;

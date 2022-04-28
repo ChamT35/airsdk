@@ -6,6 +6,7 @@ airsdk-hello.payload-dir := missions/$(airsdk-hello.uid)/payload
 
 airsdk-hello.fsup-dir        := $(airsdk-hello.payload-dir)/fsup
 airsdk-hello.guidance-dir    := $(airsdk-hello.payload-dir)/guidance
+airsdk-hello.services-dir    := $(airsdk-hello.payload-dir)/services
 
 # Copy all files relative to SOURCE/ that match *.SUFIX into TARGET
 # ($1:SOURCE $2:SUFFIX $3:TARGET)
@@ -91,6 +92,25 @@ $(foreach __f,$(hello_guidance_proto_files), \
 include $(BUILD_CUSTOM)
 
 #############################################################
+# Create libnn library
+
+libnn_path := services/libnn/src
+libnn_file := $(call all-files-under,$(libnn_path),.cpp)
+
+# include $(CLEAR_VARS)
+
+# LOCAL_MODULE := libnn
+# LOCAL_CATEGORY_PATH := airsdk/missions/samples/hello
+# LOCAL_CXXFLAGS := -std=c++11
+# LOCAL_LIBRARIES := eigen
+# LOCAL_EXPORT_C_INCLUDES := $(call local-get-build-dir)/gen
+# LOCAL_SRC_FILES := libnn_file
+# LOCAL_C_INCLUDES := $(LOCAL_PATH)/services/libnn/include
+# lOCAL_SDK:= $(LOCAL_PATH)
+
+# include $(BUILD_LIBRARY)
+
+#############################################################
 # Build and copy mission services
 
 include $(CLEAR_VARS)
@@ -98,11 +118,20 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := airsdk-hello-cv-service
 LOCAL_CATEGORY_PATH := airsdk/missions/samples/hello
 LOCAL_DESTDIR := $(airsdk-hello.payload-dir)/services
+#LOCAL_C_INCLUDE := $(LOCAL_PATH)/services/libnn/include
 
 LOCAL_SRC_FILES := services/main.cpp \
 	services/native/processing.cpp services/native/sample.cpp \
 	services/singulair/test.cpp services/singulair/nn_processing.cpp
 # services/native/test.cpp
+
+# LOCAL_SRC_FILES += services/libnn/src/Linear.cpp
+
+
+# $(foreach __f,$(libnn_path), \
+# 	$(eval LOCAL_SRC_FILES += $(__f)))
+
+# $(call copy-all-under,services,.jpg,$(airsdk-hello.services-dir))
 
 LOCAL_LIBRARIES := \
 	libairsdk-hello-cv-service-msghub \
@@ -113,7 +142,9 @@ LOCAL_LIBRARIES := \
 	libvideo-ipc \
 	libvideo-ipc-client-config \
 	opencv4 \
-	protobuf 
+	protobuf \
+	eigen 
+	
 
 include $(BUILD_EXECUTABLE)
 
@@ -160,7 +191,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := libairsdk-hello-cv-service-msghub
 LOCAL_CATEGORY_PATH := airsdk/missions/samples/hello
 LOCAL_CXXFLAGS := -std=c++11
-LOCAL_LIBRARIES := protobuf libairsdk-hello-cv-service-pb libmsghub
+LOCAL_LIBRARIES := protobuf libairsdk-hello-cv-service-pb libmsghub 
 LOCAL_EXPORT_C_INCLUDES := $(call local-get-build-dir)/gen
 
 $(foreach __f,$(cv_service_proto_files), \

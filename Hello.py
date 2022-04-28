@@ -7,6 +7,7 @@ import olympe.log
 from olympe.controller import Disconnected
 from olympe.messages import mission
 from olympe.messages.common.Common import Reboot
+# from olympe.messages.camera import take_photo, set_camera_mode, set_photo_mode
 
 DRONE_IP = os.environ.get("DRONE_IP", "10.202.0.1")
 HELLO_MISSION_URL = os.environ.get("HELLO_MISSION_URL", "out/hello-pc/images/com.parrot.missions.samples.hello.tar.gz")
@@ -30,10 +31,12 @@ def test_hello_mission():
 
 
         # # Install the 'hello' mission and reboot the drone
-
+        logger.warning("Connection au drone")
         assert drone.connect()
+        logger.warning("Installation de la mission")
         assert hello.install(allow_overwrite=True)
         logger.info("Mission list: " + pprint.pformat(drone.mission.list_remote()))
+        logger.warning("Reboot du drone")
         assert drone(Reboot() >> Disconnected()).wait()
 
         # Connect to the drone after reboot, load and activate the 'hello' mission
@@ -53,6 +56,21 @@ def test_hello_mission():
         assert mission_activated.wait(), mission_activated.explain()
 
         logger.warning("Hello mission activé")
+
+        # Take a picture
+        # logger.warning("Prend une photo")
+        # try:
+        #     logger.warning("Camera Mode")
+        #     drone(set_camera_mode(cam_id=0, value=1)).wait()
+        #     logger.warning("Photo Mode")
+        #     drone(set_photo_mode(cam_id=0, mode=0, format=0, file_format=0, burst=0, bracketing=0, capture_interval=0)).wait()
+        #     logger.warning("Take Photo")
+        #     drone(take_photo(cam_id=0)).wait()
+        # except Exception as e:
+        #     # Catches any possible streaming error and ensure the drone lands afterwards
+        #     print(traceback.format_exc(), file=sys.stderr)
+        #     print("\n")
+
         # Make the drone say hello (nod its gimbal)
 
         assert drone(Say()).wait()

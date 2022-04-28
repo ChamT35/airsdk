@@ -1,5 +1,4 @@
 #include <future>
-
 #define ULOG_TAG ms_main
 #include <ulog.h>
 ULOG_DECLARE_TAG(ULOG_TAG);
