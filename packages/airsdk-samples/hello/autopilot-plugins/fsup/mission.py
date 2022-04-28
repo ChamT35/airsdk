@@ -1,38 +1,24 @@
 from fsup.utils import msg_id
 from fsup.genmission import AbstractMission
-from fsup.missions.default.takeoff.stage import (
-    TAKEOFF_STAGE as DEF_TAKEOFF_STAGE,
-)
-from fsup.missions.default.hovering.stage import (
-    HOVERING_STAGE as DEF_HOVERING_STAGE,
-)
-from fsup.missions.default.landing.stage import (
-    LANDING_STAGE as DEF_LANDING_STAGE,
-)
-from fsup.missions.default.critical.stage import (
-    CRITICAL_STAGE as DEF_CRITICAL_STAGE,
-)
+
+from fsup.missions.default.ground.stage import GROUND_STAGE as DEF_GROUND_STAGE
+from fsup.missions.default.takeoff.stage import TAKEOFF_STAGE as DEF_TAKEOFF_STAGE
+from fsup.missions.default.hovering.stage import HOVERING_STAGE as DEF_HOVERING_STAGE
+from fsup.missions.default.landing.stage import LANDING_STAGE as DEF_LANDING_STAGE
+from fsup.missions.default.critical.stage import CRITICAL_STAGE as DEF_CRITICAL_STAGE
 from fsup.missions.default.mission import TRANSITIONS as DEF_TRANSITIONS
 
-# messages exchanged with mission UI
-import parrot.missions.samples.hello.airsdk.messages_pb2 as hello_messages
+import parrot.missions.samples.hello.airsdk.messages_pb2 as ui_messages
+import samples.hello.guidance.messages_pb2 as guidance_messages
+import samples.hello.cv_service.messages_pb2 as cv_service_messages
 
-# messages exchanged with the guidance ground mode
-import samples.hello.guidance.messages_pb2 as hello_gdnc_mode_messages
-
-# messages exchanged with the cv service
-import samples.hello.cv_service.messages_pb2 as hello_cv_service_messages
-
-# events that are not expressed as protobuf messages
 import fsup.services.events as events
 
-# messages exchanged with the drone controller
 import drone_controller.drone_controller_pb2 as dctl_messages
 import colibrylite.motion_state_pb2 as cbry_motion_state
 
 UID = "com.parrot.missions.samples.hello"
 
-from .ground.stage import GROUND_STAGE  # noqa: E402
 from .flying.stage import FLYING_STAGE  # noqa: E402
 
 
@@ -52,7 +38,7 @@ class Mission(AbstractMission):
         ##################################
         # The airsdk service assumes that the mission is a server: as such it
         # sends events and receive commands.
-        self.ext_ui_msgs = self.env.make_airsdk_service_pair(hello_messages)
+        self.ext_ui_msgs = self.env.make_airsdk_service_pair(ui_messages)
 
     def on_unload(self):
         ####################################
@@ -74,7 +60,7 @@ class Mission(AbstractMission):
 
         # Attach Guidance ground mode messages
         self.gdnc_grd_mode_msgs = self.mc.attach_client_service_pair(
-            self.mc.gdnc_channel, hello_gdnc_mode_messages, True
+            self.mc.gdnc_channel, guidance_messages, True
         )
 
         # Create Computer Vision service channel
@@ -84,7 +70,7 @@ class Mission(AbstractMission):
 
         # Attach Computer Vision service messages
         self.cv_service_msgs = self.mc.attach_client_service_pair(
-            self.cv_service_msgs_channel, hello_cv_service_messages, True
+            self.cv_service_msgs_channel, cv_service_messages, True
         )
 
         # For forwarding, observe messages using an observer
@@ -92,12 +78,12 @@ class Mission(AbstractMission):
             {
                 events.Channel.CONNECTED: lambda _, c: self._on_connected(c),
                 msg_id(
-                    hello_cv_service_messages.Event, "close"
+                    cv_service_messages.Event, "close"
                 ): lambda *args: self._send_to_ui_stereo_camera_close_state(
                     True
                 ),
                 msg_id(
-                    hello_cv_service_messages.Event, "far"
+                    cv_service_messages.Event, "far"
                 ): lambda *args: self._send_to_ui_stereo_camera_close_state(
                     False
                 ),
@@ -177,7 +163,7 @@ class Mission(AbstractMission):
 
     def states(self):
         return [
-            GROUND_STAGE,
+            DEF_GROUND_STAGE,
             DEF_TAKEOFF_STAGE,
             DEF_HOVERING_STAGE,
             FLYING_STAGE,
@@ -186,25 +172,30 @@ class Mission(AbstractMission):
         ]
 
     def transitions(self):
-        # Each field is a string that represents an event in the
+        # Each field is a string that represe"ground.say"nts an event in the
         # state-machine; it means "this particular message from that
         # component was received". In the state-machine, an event is
         # used to trigger a transition from a source state to a target
         # state.
 
         TRANSITIONS = [
-            # "say/hold" messages from the mission UI alternate between "say"
-            # and "idle" states in the ground stage.
+  
             [
-                msg_id(hello_messages.Command, "say"),
-                "ground.idle",
-                "ground.say",
+                msg_id(ui_messages.Command, 'say'),
+                'ground',
+                'takeoff.normal',
             ],
             [
-                msg_id(hello_messages.Command, "hold"),
-                "ground.say",
-                "ground.idle",
+                'DroneController.full_steady_ok',
+                'takeoff.normal',
+                'flying.move_forward'  
             ],
+            [
+                msg_id(ui_messages.Command, 'hold'),
+                'flying.move_forward',
+                'landing.normal',
+            ],
+            
         ]
 
         return TRANSITIONS + DEF_TRANSITIONS
