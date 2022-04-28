@@ -99,10 +99,7 @@ LOCAL_MODULE := airsdk-hello-cv-service
 LOCAL_CATEGORY_PATH := airsdk/missions/samples/hello
 LOCAL_DESTDIR := $(airsdk-hello.payload-dir)/services
 
-LOCAL_SRC_FILES := services/main.cpp \
-	services/native/processing.cpp services/native/sample.cpp \
-	services/singulair/test.cpp #services/singulair/nn_processing.cpp
-# services/native/test.cpp
+LOCAL_SRC_FILES := services/native/processing.cpp services/native/sample.cpp
 
 LOCAL_LIBRARIES := \
 	libairsdk-hello-cv-service-msghub \
@@ -113,14 +110,14 @@ LOCAL_LIBRARIES := \
 	libvideo-ipc \
 	libvideo-ipc-client-config \
 	opencv4 \
-	protobuf 
+	protobuf
 
 include $(BUILD_EXECUTABLE)
 
 #############################################################
-# Messages exchanged between mission and native/singulair cv service
+# Messages exchanged between mission and native cv service
 
-cv_service_proto_path := services/protobuf
+cv_service_proto_path := services/native/protobuf
 cv_service_proto_files := $(call all-files-under,$(cv_service_proto_path),.proto)
 
 include $(CLEAR_VARS)

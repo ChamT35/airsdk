@@ -25,7 +25,6 @@ ULOG_DECLARE_TAG(ULOG_TAG);
 
 #include "processing.h"
 
-namespace sample {
 #define VIPC_DEPTH_MAP_STREAM "fstcam_stereo_depth_filtered"
 #define TLM_SECTION_USER "drone_controller"
 #define TLM_SECTION_OUT "cv@hello"
@@ -550,7 +549,7 @@ static void sighandler(int signum)
 	pomp_loop_wakeup(s_ctx.loop.get());
 }
 
-int sample()
+int main(int argc, char *argv[])
 {
 	int res = 0;
 
@@ -579,5 +578,4 @@ int sample()
 	context_clean(&s_ctx);
 out:
 	return res == 0 ? 0 : -1;
-}
 }

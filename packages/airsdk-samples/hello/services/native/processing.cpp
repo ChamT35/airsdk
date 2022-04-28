@@ -97,7 +97,7 @@ static void *thread_entry(void *userdata)
 
 		/* Copy locally input data */
 		local_input = self->input;
-		memset(&self->input, 0, sizeof(self->input)); 
+		memset(&self->input, 0, sizeof(self->input));
 		self->input_available = false;
 
 		/* Do the heavy computation outside lock */

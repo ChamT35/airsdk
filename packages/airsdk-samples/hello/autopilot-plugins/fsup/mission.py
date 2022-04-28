@@ -35,6 +35,7 @@ UID = "com.parrot.missions.samples.hello"
 from .ground.stage import GROUND_STAGE  # noqa: E402
 from .flying.stage import FLYING_STAGE  # noqa: E402
 
+
 class Mission(AbstractMission):
     def __init__(self, env):
         super().__init__(env)
@@ -118,7 +119,6 @@ class Mission(AbstractMission):
         ############
         # Start Computer Vision service processing
         self.cv_service_msgs.cmd.sender.processing_start()
-        self.cv_service_msgs.cmd.sender.nn_processing_start()
 
     def _on_connected(self, channel):
         if channel == self.env.airsdk_channel:
