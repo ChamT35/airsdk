@@ -22,6 +22,8 @@ UID = "com.parrot.missions.samples.hello"
 from .flying.stage import FLYING_STAGE  # noqa: E402
 
 
+import logging
+
 class Mission(AbstractMission):
     def __init__(self, env):
         super().__init__(env)
@@ -92,6 +94,9 @@ class Mission(AbstractMission):
                 ): lambda _, msg: self._send_to_ui_drone_motion_state(
                     msg.motion_state_changed == cbry_motion_state.MOVING
                 ),
+                msg_id(
+                    guidance_messages.Event, "take_photo"
+                ): lambda *args: self._send_to_ui_take_photo(),
             }
         )
 
@@ -117,6 +122,10 @@ class Mission(AbstractMission):
 
     def _send_to_ui_drone_motion_state(self, state):
         self.ext_ui_msgs.evt.sender.drone_moving(state)
+
+    def _send_to_ui_take_photo(self):
+        self.ext_ui_msgs.evt.sender.ask_for_photo(True)
+        logging.info("BBBBBBBBBBBBBBBBBBBBBBBB")
 
     def _on_ui_msg_cmd(self, event, message):
         # It is recommended that log functions are only called with a
