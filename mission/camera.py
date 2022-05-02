@@ -72,7 +72,7 @@ def camera_mission():
             logger.warning("MISSION CAMERA : SAY")
             assert drone(Say()).wait()
             sleep(10)
-            # TODO : Remplacer sleep par un compteur de 10 messages
+            
             while(flight_listener.photo_count<10):
                 pass
             logger.warning("MISSION CAMERA : HOLD")
