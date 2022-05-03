@@ -3,3 +3,5 @@
 !.gitignore
 !/packages
 !Hello.py
+!/mission
+!/sdk
