@@ -1,7 +1,7 @@
 *
 
 !.gitignore
-!/packages
+!/packages/
 !Hello.py
-!/mission
-!/sdk
+!/mission/
+!/sdk/
