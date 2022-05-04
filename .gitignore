@@ -1,13 +1,9 @@
 /*
 
 !.gitignore
-!/packages/*
-!/packages/*/*
-!/packages/*/*/*
-!/packages/*/*/*/*
-!/packages/*/*/*/*/*
-!/packages/*/*/*/*/*/*
-!/packages/*/*/*/*/*/*/*
-!/mission/*
+!packages/**/*
+
+!mission
 !Hello.py
-!/packages/airsdk-samples/*
+!packages
+!hello.py
