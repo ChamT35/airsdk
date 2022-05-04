@@ -1,6 +1,11 @@
 *
 
 !.gitignore
-!packages/*
+!/packages/*
+!/packages/*/*
+!/packages/*/*/*
+!/packages/*/*/*/*
+!/packages/*/*/*/*/*
+!/packages/*/*/*/*/*/*
 !/mission/*
 !Hello.py
