@@ -135,7 +135,7 @@ $(foreach __f,$(cv_service_proto_files), \
 )
 
 include $(BUILD_CUSTOM)
-
+$(info coucou)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := libairsdk-hello-cv-service-pb
@@ -171,6 +171,26 @@ include $(BUILD_LIBRARY)
 #############################################################
 ## 						SINGULAIR						   ##
 #############################################################
+
+
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := libnn
+LOCAL_CATEGORY_PATH := airsdk/missions/samples/singulair
+
+# LOCAL_DESTDIR := $(airsdk-hello.payload-dir)/services
+LOCAL_CXXFLAGS := -std=c++11
+LOCAL_LIBRARIES := eigen
+LOCAL_EXPORT_C_INCLUDES := $(call local-get-build-dir)/gen
+LOCAL_SRC_FILES := $(foreach folder, $(notdir $(wildcard services/libnn/src/*)), $(foreach file, $(notdir $(wildcard services/libnn/src/$(folder)/*.cpp)), $(wildcard services/libnn/src/$(folder)/$(file))))
+LOCAL_C_INCLUDES := $(wildcard $(LOCAL_PATH)/services/libnn/include/*)
+# $(foreach sdir, $(LOCAL_PATH)/services/libnn/src/*, $(info $(sdir)))
+# $(wildcard $(sdir)/*.cpp)
+$(info LOCAL6INCLUDE :	 $(LOCAL_SRC_FILES) test)
+include $(BUILD_LIBRARY)
+$(info LOCAL6INCLUDE :	 $(LOCAL_C_INCLUDES) test)
+
 # Build and copy singulair mission services
 
 include $(CLEAR_VARS)
@@ -190,7 +210,8 @@ LOCAL_LIBRARIES := \
 	libvideo-ipc \
 	libvideo-ipc-client-config \
 	opencv4 \
-	protobuf 
+	protobuf \
+	libnn
 
 include $(BUILD_EXECUTABLE)
 
@@ -247,3 +268,4 @@ $(foreach __f,$(cv_service_proto_files), \
 )
 
 include $(BUILD_LIBRARY)
+

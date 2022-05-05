@@ -27,6 +27,8 @@ ULOG_DECLARE_TAG(ULOG_TAG);
 
 #include "processing.h"
 
+// #include <Linear.hpp>
+
 #define VIPC_DEPTH_MAP_STREAM "fstcam_stereo_depth_filtered"
 #define TLM_SECTION_USER "drone_controller"
 #define TLM_SECTION_OUT "cv@singulair"

@@ -1,7 +1,6 @@
 /*
 
 !.gitignore
-!packages/**/*
 
 !mission
 !Hello.py
