@@ -1,27 +1,15 @@
 from fsup.utils import msg_id
 from fsup.genmission import AbstractMission
-from fsup.missions.default.takeoff.stage import (
-    TAKEOFF_STAGE as DEF_TAKEOFF_STAGE,
-)
-from fsup.missions.default.hovering.stage import (
-    HOVERING_STAGE as DEF_HOVERING_STAGE,
-)
-from fsup.missions.default.landing.stage import (
-    LANDING_STAGE as DEF_LANDING_STAGE,
-)
-from fsup.missions.default.critical.stage import (
-    CRITICAL_STAGE as DEF_CRITICAL_STAGE,
-)
+from fsup.missions.default.takeoff.stage import TAKEOFF_STAGE as DEF_TAKEOFF_STAGE
+from fsup.missions.default.hovering.stage import HOVERING_STAGE as DEF_HOVERING_STAGE
+from fsup.missions.default.landing.stage import LANDING_STAGE as DEF_LANDING_STAGE
+from fsup.missions.default.critical.stage import CRITICAL_STAGE as DEF_CRITICAL_STAGE
 from fsup.missions.default.mission import TRANSITIONS as DEF_TRANSITIONS
 
-# messages exchanged with mission UI
-import parrot.missions.samples.hello.airsdk.messages_pb2 as hello_messages
-
-# messages exchanged with the guidance ground mode
-import samples.hello.guidance.messages_pb2 as hello_gdnc_mode_messages
-
-# messages exchanged with the cv service
-import samples.hello.cv_service.messages_pb2 as hello_cv_service_messages
+import parrot.missions.samples.hello.airsdk.messages_pb2 as ui_messages
+import samples.hello.guidance.messages_pb2 as guidance_messages
+import samples.hello.cv_service.messages_pb2 as cv_service_messages
+import samples.singulair.cv_service.messages_pb2 as sg_service_messages
 
 # events that are not expressed as protobuf messages
 import fsup.services.events as events
@@ -42,6 +30,8 @@ class Mission(AbstractMission):
         self.ext_ui_msgs = None
         self.cv_service_msgs_channel = None
         self.cv_service_msgs = None
+        self.sg_service_msgs_channel = None
+        self.sg_service_msgs = None
         self.gdnc_grd_mode_msgs = None
         self.observer = None
         self.dbg_observer = None
@@ -52,7 +42,7 @@ class Mission(AbstractMission):
         ##################################
         # The airsdk service assumes that the mission is a server: as such it
         # sends events and receive commands.
-        self.ext_ui_msgs = self.env.make_airsdk_service_pair(hello_messages)
+        self.ext_ui_msgs = self.env.make_airsdk_service_pair(ui_messages)
 
     def on_unload(self):
         ####################################
@@ -74,17 +64,22 @@ class Mission(AbstractMission):
 
         # Attach Guidance ground mode messages
         self.gdnc_grd_mode_msgs = self.mc.attach_client_service_pair(
-            self.mc.gdnc_channel, hello_gdnc_mode_messages, True
+            self.mc.gdnc_channel, guidance_messages, True
         )
 
         # Create Computer Vision service channel
         self.cv_service_msgs_channel = self.mc.start_client_channel(
             "unix:/tmp/hello-cv-service"
         )
-
+        self.sg_service_msgs_channel = self.mc.start_client_channel(
+            "unix:/tmp/singulair-cv-service"
+        )
         # Attach Computer Vision service messages
         self.cv_service_msgs = self.mc.attach_client_service_pair(
-            self.cv_service_msgs_channel, hello_cv_service_messages, True
+            self.cv_service_msgs_channel, cv_service_messages, True
+        )
+        self.sg_service_msgs = self.mc.attach_client_service_pair(
+            self.sg_service_msgs_channel, sg_service_messages, True
         )
 
         # For forwarding, observe messages using an observer
@@ -92,12 +87,12 @@ class Mission(AbstractMission):
             {
                 events.Channel.CONNECTED: lambda _, c: self._on_connected(c),
                 msg_id(
-                    hello_cv_service_messages.Event, "close"
+                    cv_service_messages.Event, "close"
                 ): lambda *args: self._send_to_ui_stereo_camera_close_state(
                     True
                 ),
                 msg_id(
-                    hello_cv_service_messages.Event, "far"
+                    cv_service_messages.Event, "far"
                 ): lambda *args: self._send_to_ui_stereo_camera_close_state(
                     False
                 ),
@@ -119,6 +114,7 @@ class Mission(AbstractMission):
         ############
         # Start Computer Vision service processing
         self.cv_service_msgs.cmd.sender.processing_start()
+        self.sg_service_msgs.cmd.sender.processing_start()
 
     def _on_connected(self, channel):
         if channel == self.env.airsdk_channel:
@@ -196,12 +192,12 @@ class Mission(AbstractMission):
             # "say/hold" messages from the mission UI alternate between "say"
             # and "idle" states in the ground stage.
             [
-                msg_id(hello_messages.Command, "say"),
+                msg_id(ui_messages.Command, "say"),
                 "ground.idle",
                 "ground.say",
             ],
             [
-                msg_id(hello_messages.Command, "hold"),
+                msg_id(ui_messages.Command, "hold"),
                 "ground.say",
                 "ground.idle",
             ],
