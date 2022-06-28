@@ -1,18 +1,21 @@
 LOCAL_PATH := $(call my-dir)
 
+MAIN_PATH := $(LOCAL_PATH)
+
 airsdk-hello.name        := hello
 airsdk-hello.uid         := com.parrot.missions.samples.$(airsdk-hello.name)
 airsdk-hello.payload-dir := missions/$(airsdk-hello.uid)/payload
 
 airsdk-hello.fsup-dir        := $(airsdk-hello.payload-dir)/fsup
 airsdk-hello.guidance-dir    := $(airsdk-hello.payload-dir)/guidance
-
+airsdk-hello.services-dir	 := $(airsdk-hello.payload-dir)/services
 # Copy all files relative to SOURCE/ that match *.SUFIX into TARGET
 # ($1:SOURCE $2:SUFFIX $3:TARGET)
 
 copy-all-under = $(foreach __f,\
 	$(call all-files-under,$1,$2),\
 	$(eval LOCAL_COPY_FILES += $(__f):$(patsubst $1/%,$3/%,$(__f))))
+
 
 #############################################################
 # Copy autopilot mission files (fsup/guidance python)
@@ -98,7 +101,6 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := airsdk-hello-cv-service
 LOCAL_CATEGORY_PATH := airsdk/missions/samples/hello
 LOCAL_DESTDIR := $(airsdk-hello.payload-dir)/services
-
 LOCAL_SRC_FILES := services/native/processing.cpp services/native/sample.cpp
 
 LOCAL_LIBRARIES := \
@@ -135,7 +137,7 @@ $(foreach __f,$(cv_service_proto_files), \
 )
 
 include $(BUILD_CUSTOM)
-$(info coucou)
+
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := libairsdk-hello-cv-service-pb
@@ -173,99 +175,99 @@ include $(BUILD_LIBRARY)
 #############################################################
 
 
+# include $(CLEAR_VARS)
 
-include $(CLEAR_VARS)
+# LOCAL_MODULE := libnn
+# LOCAL_CATEGORY_PATH := airsdk/missions/samples/singulair
 
-LOCAL_MODULE := libnn
-LOCAL_CATEGORY_PATH := airsdk/missions/samples/singulair
+# # LOCAL_DESTDIR := $(airsdk-hello.payload-dir)/services
+# LOCAL_CXXFLAGS := -std=c++11
+# LOCAL_LIBRARIES := eigen
+# LOCAL_EXPORT_C_INCLUDES := $(call local-get-build-dir)/gen
+# LOCAL_SRC_FILES := $(foreach folder, $(notdir $(wildcard services/libnn/src/*)), $(foreach file, $(notdir $(wildcard services/libnn/src/$(folder)/*.cpp)), $(wildcard services/libnn/src/$(folder)/$(file))))
+# LOCAL_C_INCLUDES := $(wildcard $(LOCAL_PATH)/services/libnn/include/*)
+# # $(foreach sdir, $(LOCAL_PATH)/services/libnn/src/*, $(info $(sdir)))
+# # $(wildcard $(sdir)/*.cpp)
+# $(info LOCAL6INCLUDE :	 $(LOCAL_SRC_FILES) test)
+# include $(BUILD_LIBRARY)
+# $(info LOCAL6INCLUDE :	 $(LOCAL_C_INCLUDES) test)
 
+# # Build and copy singulair mission services
+
+# include $(CLEAR_VARS)
+
+# LOCAL_MODULE := airsdk-singulair-cv-service
+# LOCAL_CATEGORY_PATH := airsdk/missions/samples/singulair
 # LOCAL_DESTDIR := $(airsdk-hello.payload-dir)/services
-LOCAL_CXXFLAGS := -std=c++11
-LOCAL_LIBRARIES := eigen
-LOCAL_EXPORT_C_INCLUDES := $(call local-get-build-dir)/gen
-LOCAL_SRC_FILES := $(foreach folder, $(notdir $(wildcard services/libnn/src/*)), $(foreach file, $(notdir $(wildcard services/libnn/src/$(folder)/*.cpp)), $(wildcard services/libnn/src/$(folder)/$(file))))
-LOCAL_C_INCLUDES := $(wildcard $(LOCAL_PATH)/services/libnn/include/*)
-# $(foreach sdir, $(LOCAL_PATH)/services/libnn/src/*, $(info $(sdir)))
-# $(wildcard $(sdir)/*.cpp)
-$(info LOCAL6INCLUDE :	 $(LOCAL_SRC_FILES) test)
-include $(BUILD_LIBRARY)
-$(info LOCAL6INCLUDE :	 $(LOCAL_C_INCLUDES) test)
 
-# Build and copy singulair mission services
+# LOCAL_SRC_FILES := services/singulair/processing.cpp services/singulair/sample.cpp
 
-include $(CLEAR_VARS)
+# LOCAL_LIBRARIES := \
+# 	libairsdk-singulair-cv-service-msghub \
+# 	libmsghub \
+# 	libpomp \
+# 	libtelemetry \
+# 	libulog \
+# 	libvideo-ipc \
+# 	libvideo-ipc-client-config \
+# 	opencv4 \
+# 	protobuf 
 
-LOCAL_MODULE := airsdk-singulair-cv-service
-LOCAL_CATEGORY_PATH := airsdk/missions/samples/singulair
-LOCAL_DESTDIR := $(airsdk-hello.payload-dir)/services
-
-LOCAL_SRC_FILES := services/singulair/processing.cpp services/singulair/sample.cpp
-
-LOCAL_LIBRARIES := \
-	libairsdk-singulair-cv-service-msghub \
-	libmsghub \
-	libpomp \
-	libtelemetry \
-	libulog \
-	libvideo-ipc \
-	libvideo-ipc-client-config \
-	opencv4 \
-	protobuf \
-	libnn
-
-include $(BUILD_EXECUTABLE)
+# include $(BUILD_EXECUTABLE)
 
 #############################################################
 # Messages exchanged between mission and singulair cv service
 
-cv_service_proto_path := services/singulair/protobuf
-cv_service_proto_files := $(call all-files-under,$(cv_service_proto_path),.proto)
+# cv_service_proto_path := services/singulair/protobuf
+# cv_service_proto_files := services/singulair/protobuf/samples/singulair/cv-service/messages.proto
 
-include $(CLEAR_VARS)
+# include $(CLEAR_VARS)
 
-LOCAL_MODULE := libairsdk-singulair-cv-service-pbpy
-LOCAL_CATEGORY_PATH := airsdk/missions/samples/singulair
-LOCAL_LIBRARIES := \
-	protobuf-python
+# LOCAL_MODULE := libairsdk-singulair-cv-service-pbpy
+# LOCAL_CATEGORY_PATH := airsdk/missions/samples/singulair
+# LOCAL_LIBRARIES := \
+# 	protobuf-python
 
-$(foreach __f,$(cv_service_proto_files), \
-	$(eval LOCAL_CUSTOM_MACROS += $(subst $(space),,protoc-macro:python, \
-		$(TARGET_OUT_STAGING)/usr/lib/python/site-packages, \
-		$(LOCAL_PATH)/$(__f), \
-		$(LOCAL_PATH)/$(cv_service_proto_path))) \
-)
+# $(foreach __f,$(cv_service_proto_files), \
+# 	$(eval LOCAL_CUSTOM_MACROS += $(subst $(space),,protoc-macro:python, \
+# 		$(TARGET_OUT_STAGING)/usr/lib/python/site-packages, \
+# 		$(LOCAL_PATH)/$(__f), \
+# 		$(LOCAL_PATH)/$(cv_service_proto_path))) \
+# )
 
-include $(BUILD_CUSTOM)
+# include $(BUILD_CUSTOM)
 
-include $(CLEAR_VARS)
+# include $(CLEAR_VARS)
 
-LOCAL_MODULE := libairsdk-singulair-cv-service-pb
-LOCAL_CATEGORY_PATH := airsdk/missions/samples/singulair
-LOCAL_CXXFLAGS := -std=c++11
-LOCAL_LIBRARIES := protobuf
-LOCAL_EXPORT_C_INCLUDES := $(call local-get-build-dir)/gen
+# LOCAL_MODULE := libairsdk-singulair-cv-service-pb
+# LOCAL_CATEGORY_PATH := airsdk/missions/samples/singulair
+# LOCAL_CXXFLAGS := -std=c++11
+# LOCAL_LIBRARIES := protobuf
+# LOCAL_EXPORT_C_INCLUDES := $(call local-get-build-dir)/gen
 
-$(foreach __f,$(cv_service_proto_files), \
-	$(eval LOCAL_CUSTOM_MACROS += $(subst $(space),,protoc-macro:cpp,gen, \
-		$(LOCAL_PATH)/$(__f), \
-		$(LOCAL_PATH)/$(cv_service_proto_path))) \
-)
+# $(foreach __f,$(cv_service_proto_files), \
+# 	$(eval LOCAL_CUSTOM_MACROS += $(subst $(space),,protoc-macro:cpp,gen, \
+# 		$(LOCAL_PATH)/$(__f), \
+# 		$(LOCAL_PATH)/$(cv_service_proto_path))) \
+# )
 
-include $(BUILD_LIBRARY)
+# include $(BUILD_LIBRARY)
 
-include $(CLEAR_VARS)
+# include $(CLEAR_VARS)
 
-LOCAL_MODULE := libairsdk-singulair-cv-service-msghub
-LOCAL_CATEGORY_PATH := airsdk/missions/samples/singulair
-LOCAL_CXXFLAGS := -std=c++11
-LOCAL_LIBRARIES := protobuf libairsdk-singulair-cv-service-pb libmsghub
-LOCAL_EXPORT_C_INCLUDES := $(call local-get-build-dir)/gen
+# LOCAL_MODULE := libairsdk-singulair-cv-service-msghub
+# LOCAL_CATEGORY_PATH := airsdk/missions/samples/singulair
+# LOCAL_CXXFLAGS := -std=c++11
+# LOCAL_LIBRARIES := protobuf libairsdk-singulair-cv-service-pb libmsghub
+# LOCAL_EXPORT_C_INCLUDES := $(call local-get-build-dir)/gen
 
-$(foreach __f,$(cv_service_proto_files), \
-	$(eval LOCAL_CUSTOM_MACROS += $(subst $(space),,msghub-macro:cpp,gen, \
-		$(LOCAL_PATH)/$(__f), \
-		$(LOCAL_PATH)/$(cv_service_proto_path))) \
-)
+# $(foreach __f,$(cv_service_proto_files), \
+# 	$(eval LOCAL_CUSTOM_MACROS += $(subst $(space),,msghub-macro:cpp,gen, \
+# 		$(LOCAL_PATH)/$(__f), \
+# 		$(LOCAL_PATH)/$(cv_service_proto_path))) \
+# )
 
-include $(BUILD_LIBRARY)
+# include $(BUILD_LIBRARY)
 
+include $(MAIN_PATH)/services/test_ia/atom.mk
+include $(MAIN_PATH)/services/singulair/atom.mk

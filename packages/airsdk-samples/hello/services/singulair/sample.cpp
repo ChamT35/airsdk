@@ -23,48 +23,20 @@ ULOG_DECLARE_TAG(ULOG_TAG);
 #include <google/protobuf/empty.pb.h>
 #include <samples/singulair/cv-service/messages.msghub.h>
 
-// #include <torch/torch.h>
+#include <opencv2/opencv.hpp>
+// #include <opencv2/imgcodecs.hpp>
 
 #include "processing.h"
+#include "evalutation.hpp"
+// #include <d_utils/cv_images.hpp>
 
-// #include <Linear.hpp>
-
-#define VIPC_DEPTH_MAP_STREAM "fstcam_stereo_depth_filtered"
-#define TLM_SECTION_USER "drone_controller"
-#define TLM_SECTION_OUT "cv@singulair"
-#define TLM_SECTION_OUT_RATE 1000
-#define TLM_SECTION_OUT_COUNT 10
+#define VIPC_DEPTH_MAP_STREAM "fcam_streaming"
 #define MSGHUB_ADDR "unix:/tmp/singulair-cv-service"
-#define CLOSE_DEPTH 0.8f /* [m] */
-#define FAR_DEPTH 1.2f   /* [m] */
 
-struct tlm_data_in {
-	struct {
-		float x;
-		float y;
-		float z;
-	} velocity;
 
-	struct {
-		float x;
-		float y;
-		float z;
-	} position_global;
+#define IMAGE_ADRR \
+	"/mnt/user-internal/missions/com.parrot.missions.samples.hello/payload/services/15.jpg"
 
-	struct {
-		float yaw;
-		float pitch;
-		float roll;
-	} attitude;
-};
-
-struct tlm_data_out {
-	struct {
-		float x, y, z;
-		float depth_mean;
-		float confidence;
-	} algo;
-};
 
 class HelloServiceCommandHandler : public ::samples::singulair::cv_service::
 					   messages::msghub::CommandHandler {
@@ -85,97 +57,23 @@ struct context {
 	using HelloServiceEventSender =
 		::samples::singulair::cv_service::messages::msghub::EventSender;
 
-	/* Main loop of the program */
 	pomp::Loop loop;
 
-	/* Consumer to get drone telemetry */
-	struct tlm_consumer *consumer;
-
-	/* Structure where to save telemetry data */
-	struct tlm_data_in tlm_data_in;
-
-	/* Producer to log some telemetry */
-	struct tlm_producer *producer;
-
-	/* Structure where to save telemetry data */
-	struct tlm_data_out tlm_data_out;
-
-	/* Video ipc client */
 	struct vipcc_ctx *vipcc;
-
-	/* Video ipc frame dimensions */
 	struct vipc_dim frame_dim;
 
-	/* Processing result notification event */
 	struct pomp_evt *processing_evt;
-
-	/* Processing in background thread */
 	struct processing *processing;
 
-	/* Message hub */
 	msghub::MessageHub *msg;
-
-	/* Message hub channel */
 	msghub::Channel *msg_channel;
-
-	/* Message hub command handler */
 	HelloServiceCommandHandler msg_cmd_handler;
-
-	/* Message hub event sender */
 	HelloServiceEventSender msg_evt_sender;
 
-	/* Previous depth mean value */
-	float previous_depth_mean;
-
-	/* Close state */
 	bool is_close;
 
 	inline context() : msg_cmd_handler(this), is_close(false) {}
 };
-
-// clang-format off
-static const struct tlm_reg_field s_tlm_data_in_fields[] = {
-	TLM_REG_FIELD_SCALAR_EX(struct tlm_data_in, velocity.x,
-			"linear_velocity_global.x", TLM_TYPE_FLOAT32),
-	TLM_REG_FIELD_SCALAR_EX(struct tlm_data_in, velocity.y,
-			"linear_velocity_global.y", TLM_TYPE_FLOAT32),
-	TLM_REG_FIELD_SCALAR_EX(struct tlm_data_in, velocity.z,
-			"linear_velocity_global.z", TLM_TYPE_FLOAT32),
-
-	TLM_REG_FIELD_SCALAR_EX(struct tlm_data_in, position_global.x,
-			"position_global.x", TLM_TYPE_FLOAT32),
-	TLM_REG_FIELD_SCALAR_EX(struct tlm_data_in, position_global.y,
-			"position_global.y", TLM_TYPE_FLOAT32),
-	TLM_REG_FIELD_SCALAR_EX(struct tlm_data_in, position_global.z,
-			"position_global.z", TLM_TYPE_FLOAT32),
-
-	TLM_REG_FIELD_SCALAR_EX(struct tlm_data_in, attitude.yaw,
-			"attitude_euler_angles.yaw", TLM_TYPE_FLOAT32),
-	TLM_REG_FIELD_SCALAR_EX(struct tlm_data_in, attitude.pitch,
-			"attitude_euler_angles.pitch", TLM_TYPE_FLOAT32),
-	TLM_REG_FIELD_SCALAR_EX(struct tlm_data_in, attitude.roll,
-			"attitude_euler_angles.roll", TLM_TYPE_FLOAT32),
-};
-
-static const struct tlm_reg_field s_tlm_data_out_fields[] = {
-	TLM_REG_FIELD_SCALAR(struct tlm_data_out, algo.x,
-			TLM_TYPE_FLOAT32),
-	TLM_REG_FIELD_SCALAR(struct tlm_data_out, algo.y,
-			TLM_TYPE_FLOAT32),
-	TLM_REG_FIELD_SCALAR(struct tlm_data_out, algo.z,
-			TLM_TYPE_FLOAT32),
-	TLM_REG_FIELD_SCALAR(struct tlm_data_out, algo.depth_mean,
-			TLM_TYPE_FLOAT32),
-	TLM_REG_FIELD_SCALAR(struct tlm_data_out, algo.confidence,
-			TLM_TYPE_FLOAT32),
-};
-// clang-format on
-
-static const struct tlm_reg_struct s_tlm_data_in_struct =
-	TLM_REG_STRUCT("tlm_data_in", s_tlm_data_in_fields);
-
-static const struct tlm_reg_struct s_tlm_data_out_struct =
-	TLM_REG_STRUCT("tlm_data_out", s_tlm_data_out_fields);
 
 /* Global context (so the signal handler can access it */
 static struct context s_ctx;
@@ -204,19 +102,6 @@ static void context_clean(struct context *ctx)
 	delete ctx->msg;
 	ctx->msg = NULL;
 
-	if (ctx->producer != NULL) {
-		res = tlm_producer_destroy(ctx->producer);
-		if (res < 0)
-			ULOG_ERRNO("tlm_producer_destroy", -res);
-		ctx->producer = NULL;
-	}
-
-	if (ctx->consumer != NULL) {
-		res = tlm_consumer_destroy(ctx->consumer);
-		if (res < 0)
-			ULOG_ERRNO("tlm_consumer_destroy", -res);
-		ctx->consumer = NULL;
-	}
 }
 
 static int context_start(struct context *ctx)
@@ -231,7 +116,7 @@ static int context_start(struct context *ctx)
 
 	ctx->msg->attachMessageHandler(&ctx->msg_cmd_handler);
 	ctx->msg->attachMessageSender(&ctx->msg_evt_sender, ctx->msg_channel);
-
+	
 	return 0;
 }
 
@@ -265,33 +150,6 @@ static void processing_evt_cb(struct pomp_evt *evt, void *userdata)
 		ULOG_ERRNO("processing_get_output", -res);
 		return;
 	}
-
-	/* Update telemetry output */
-	ud->tlm_data_out.algo.x = output.x;
-	ud->tlm_data_out.algo.y = output.y;
-	ud->tlm_data_out.algo.z = output.z;
-	ud->tlm_data_out.algo.depth_mean = output.depth_mean;
-	ud->tlm_data_out.algo.confidence = output.confidence;
-
-	/* Write in telemetry */
-	res = tlm_producer_put_sample(ud->producer, &output.ts);
-	if (res < 0)
-		ULOG_ERRNO("tlm_producer_put_sample", -res);
-
-	/* Send event message if required */
-	if (output.depth_mean <= CLOSE_DEPTH
-	    && ud->previous_depth_mean > CLOSE_DEPTH && !ud->is_close) {
-		const ::google::protobuf::Empty message;
-		ud->msg_evt_sender.close(message);
-		ud->is_close = true;
-	}
-	if (output.depth_mean >= FAR_DEPTH
-	    && ud->previous_depth_mean < FAR_DEPTH && ud->is_close) {
-		const ::google::protobuf::Empty message;
-		ud->msg_evt_sender.far(message);
-		ud->is_close = false;
-	}
-	ud->previous_depth_mean = output.depth_mean;
 }
 
 static void status_cb(struct vipcc_ctx *ctx,
@@ -323,10 +181,9 @@ static void frame_cb(struct vipcc_ctx *ctx,
 		     void *be_frame,
 		     void *userdata)
 {
-	int res = 0;
+		int res = 0;
 	struct context *ud = (struct context *)userdata;
 	struct processing_input input;
-	struct timespec timestamp;
 
 	ULOGD("received frame %08x", frame->index);
 
@@ -343,30 +200,18 @@ static void frame_cb(struct vipcc_ctx *ctx,
 		      ud->frame_dim.height);
 		goto out;
 	}
-	if (frame->num_planes != 1) {
+	if (frame->num_planes != 2) { //TODO J'ai changer le nombre de plan a 2
 		ULOGE("wrong number of planes (%d)", frame->num_planes);
 		goto out;
 	}
-	if (frame->format != VACQ_PIX_FORMAT_RAW32) {
+	if (frame->format != VACQ_PIX_FORMAT_NV21) { // TODO METTRE LE BON FORMAT
 		ULOGE("wrong format");
-		goto out;
-	}
-
-	/* Get latest telemetry data */
-	timestamp.tv_sec = frame->ts_sof_ns / 1000000000UL;
-	timestamp.tv_nsec = frame->ts_sof_ns % 1000000000UL;
-	res = tlm_consumer_get_sample(ud->consumer, &timestamp, TLM_CLOSEST);
-	if (res < 0 && res != -ENOENT) {
-		ULOG_ERRNO("tlm_consumer_get_sample_with_timestamp", -res);
 		goto out;
 	}
 
 	/* Setup input structure for processing */
 	memset(&input, 0, sizeof(input));
 	input.frame = frame;
-	input.position_global.x = ud->tlm_data_in.position_global.x;
-	input.position_global.y = ud->tlm_data_in.position_global.y;
-	input.position_global.z = ud->tlm_data_in.position_global.z;
 
 	res = processing_step(ud->processing, &input);
 	if (res < 0) {
@@ -397,59 +242,16 @@ static void eos_cb(struct vipcc_ctx *ctx,
 	ULOGI("eos received: %s (%u)", vipc_eos_reason_to_str(reason), reason);
 }
 
-static const struct vipcc_cb s_vipc_client_cbs = {.status_cb = status_cb,
-						  .configure_cb = NULL,
-						  .frame_cb = frame_cb,
-						  .connection_status_cb =
-							  conn_status_cb,
-						  .eos_cb = eos_cb};
+static const struct vipcc_cb s_vipc_client_cbs = {	.status_cb = status_cb,
+													.configure_cb = NULL,
+													.frame_cb = frame_cb,
+													.connection_status_cb =
+														conn_status_cb,
+													.eos_cb = eos_cb};
 
 static int context_init(struct context *ctx)
 {
 	int res = 0;
-
-	/* Create telemetry consumer */
-	ctx->consumer = tlm_consumer_new();
-	if (ctx->consumer == NULL) {
-		res = -ENOMEM;
-		ULOG_ERRNO("tlm_consumer_new", -res);
-		goto error;
-	}
-	res = tlm_consumer_reg_struct_ptr(ctx->consumer,
-					  &ctx->tlm_data_in,
-					  TLM_SECTION_USER,
-					  &s_tlm_data_in_struct);
-	if (res < 0) {
-		ULOG_ERRNO("tlm_consumer_reg_struct_ptr", -res);
-		goto error;
-	}
-	res = tlm_consumer_reg_complete(ctx->consumer);
-	if (res < 0) {
-		ULOG_ERRNO("tlm_consumer_reg_complete", -res);
-		goto error;
-	}
-
-	/* Create telemetry producer */
-	ctx->producer = tlm_producer_new(
-		TLM_SECTION_OUT, TLM_SECTION_OUT_COUNT, TLM_SECTION_OUT_RATE);
-	if (ctx->producer == NULL) {
-		res = -ENOMEM;
-		ULOG_ERRNO("tlm_producer_new", -res);
-		goto error;
-	}
-	res = tlm_producer_reg_struct_ptr(ctx->producer,
-					  &ctx->tlm_data_out,
-					  NULL,
-					  &s_tlm_data_out_struct);
-	if (res < 0) {
-		ULOG_ERRNO("tlm_producer_reg_struct_ptr", -res);
-		goto error;
-	}
-	res = tlm_producer_reg_complete(ctx->producer);
-	if (res < 0) {
-		ULOG_ERRNO("tlm_producer_reg_complete", -res);
-		goto error;
-	}
 
 	/* Create message hub */
 	ctx->msg = new msghub::MessageHub(&s_ctx.loop, nullptr);
@@ -490,10 +292,11 @@ error:
 void HelloServiceCommandHandler::processingStart(
 	const ::google::protobuf::Empty &args)
 {
+	ULOGW("Message recu");
 	int res = 0;
 	struct vipcc_cfg_info vipc_info;
 	memset(&vipc_info, 0, sizeof(vipc_info));
-
+	
 	/* Make sure not already in progress */
 	ULOG_ERRNO_RETURN_IF(mCtx->vipcc != NULL, EBUSY);
 
@@ -558,12 +361,12 @@ int main(int argc, char *argv[])
 	int res = 0;
 	ULOGW("HHHHHHHHHHHEEEEEEEEEEEEELLLLLLLLLLLLLLLLLOOOOOOOOOOOOO");
 
-	/* Initialize context */
+	 /* Initialize context */
 	res = context_init(&s_ctx);
 	if (res < 0)
 		goto out;
 
-	/* Setup signal handler */
+	 /* Setup signal handler */
 	signal(SIGINT, &sighandler);
 	signal(SIGTERM, &sighandler);
 	signal(SIGPIPE, SIG_IGN);
@@ -571,9 +374,9 @@ int main(int argc, char *argv[])
 	context_start(&s_ctx);
 
 	/* Run loop until stop is requested */
-	while (!stop)
+	while (!stop){
 		pomp_loop_wait_and_process(s_ctx.loop.get(), -1);
-
+	}
 	/* Stop and cleanup */
 	context_stop(&s_ctx);
 

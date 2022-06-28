@@ -8,6 +8,8 @@
 #include <string.h>
 #include <errno.h>
 #include <pthread.h>
+#include <time.h>
+#include <sys/time.h>
 
 #define ULOG_TAG ms_sg_processing
 #include <ulog.h>
@@ -15,10 +17,18 @@ ULOG_DECLARE_TAG(ULOG_TAG);
 
 #include <libpomp.h>
 #include <video-ipc/vipc_client.h>
-
 #include <opencv2/opencv.hpp>
 
 #include "processing.h"
+#include "evalutation.hpp"
+#include "utils/convert.hpp"
+#include "utils/performance.hpp"
+
+#include <torch/script.h> 
+
+#define NN_MODEL_ADDR \
+	"/mnt/user-internal/missions/com.parrot.missions.samples.hello/payload/services/torch/model/resnet18.pt"
+
 
 struct processing {
 	struct pomp_evt *evt;
@@ -39,32 +49,43 @@ static void do_step(struct processing *self,
 		    const struct processing_input *input,
 		    struct processing_output *output)
 {
-	int i, j;
-	float depth_mean;
-
-	cv::Mat depth_frame(input->frame->height,
-			    input->frame->width,
-			    CV_32F,
-			    (void *)input->frame->planes[0].virt_addr,
-			    input->frame->planes[0].stride);
-
-	cv::Mat mask_frame(
-		input->frame->height, input->frame->width, CV_8UC1, 1);
-
-	for (i = 0; i < depth_frame.rows; ++i) {
-		for (j = 0; j < depth_frame.cols; ++j) {
-			if (depth_frame.at<float>(i, j) < 0.f
-			    || depth_frame.at<float>(i, j) == INFINITY)
-				mask_frame.at<uint8_t>(i, j) = 0;
-		}
+	ULOGW("---------------DO-STEP---------------");
+	torch::jit::script::Module module;
+	std::vector<torch::jit::IValue> inputs;
+	at::Tensor img_tensor = torch::rand({1,3,224,224});
+	inputs.push_back(img_tensor);
+	torch::NoGradGuard no_grad;
+	at::Tensor out;
+	try {
+		module = torch::jit::load(NN_MODEL_ADDR);
+		module.eval();
+		out = module.forward(inputs).toTensor();
 	}
-	depth_mean = cv::mean(depth_frame, mask_frame).val[0];
+	catch (const c10::Error& e) {
+		ULOGE(e.what());
+		ULOGC("RUNNING DON4T WORK");
+		return ;
+	}
+	ULOGW("-----------------TEST----------------");
+
+	evaluate();
+	ULOGN("Tensor creation, Opencv conversion and image saving");
+	{
+		Timer timer;
+		torch::Tensor rgb_tensor = Nv21ToTensor_rgb(input->frame);
+		cv::Mat rgb_tensor_image = cvToTensor(rgb_tensor);
+		// bool res = false;
+		// res = cv::imwrite("/mnt/user/DCIM/rgb_tensor.jpg",
+		// 		  rgb_tensor_image);
+		// if (!res) {
+		// 	ULOGN("can't write rgb_tensor");
+		// } else
+		// 	ULOGN("rgb_tensor : Done");
+	}
 
 	output->x = input->position_global.x;
 	output->y = input->position_global.y;
 	output->z = input->position_global.z;
-	output->depth_mean = depth_mean;
-	output->confidence = 1.0f;
 
 	/* Save timestamp of the frame */
 	output->ts.tv_sec = input->frame->ts_sof_ns / 1000000000UL;
@@ -113,7 +134,6 @@ static void *thread_entry(void *userdata)
 		/* Copy output data */
 		self->output = local_output;
 		self->output_available = true;
-
 		/* Notify main loop that result is available */
 		res = pomp_evt_signal(self->evt);
 		if (res < 0)
@@ -139,6 +159,14 @@ int processing_new(struct pomp_evt *evt, struct processing **ret_obj)
 	self->evt = evt;
 	pthread_mutex_init(&self->mutex, NULL);
 	pthread_cond_init(&self->cond, NULL);
+
+	// int res; // TODO pas tres propre
+	// res = self->nn_model.load(NN_MODEL_ADDR);
+	// if (res<0) {
+	// 	ULOG_ERRNO("model_load", -res);
+	// 	return -1; // TODO VOIR QUELLE EST LA MEILLEUR VALEUR A METTRE
+	// ERRNO
+	// }
 
 	*ret_obj = self;
 	return 0;

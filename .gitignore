@@ -1,8 +1,20 @@
-/*
+.repo
+.vscode
+.netrc
 
-!.gitignore
+*.pem
+*.gz
+*.sh
+*.pt
 
-!mission
-!Hello.py
-!packages
-!hello.py
+/.script/
+/build/
+/olympe-env/
+/pytorch-env/
+/out/
+/products/
+
+/sdk/
+!/sdk/custom/
+/sdk/custom/usr/lib/
+

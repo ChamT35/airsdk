@@ -121,6 +121,7 @@ class Mission(AbstractMission):
             self.log.info("connected to airsdk channel")
         elif channel == self.cv_service_msgs_channel:
             self.log.info("connected to cv service channel")
+        # TODO INFO
 
     def _send_to_ui_stereo_camera_close_state(self, state):
         self.ext_ui_msgs.evt.sender.stereo_close(state)
@@ -144,7 +145,7 @@ class Mission(AbstractMission):
         ############
         # Stop Computer Vision service processing
         self.cv_service_msgs.cmd.sender.processing_stop()
-
+        self.sg_service_msgs.cmd.sender.processing_stop()
         ####################################
         # Messages / communication cleanup #
         ####################################
@@ -159,7 +160,8 @@ class Mission(AbstractMission):
         # Detach Computer Vision service messages
         self.mc.detach_client_service_pair(self.cv_service_msgs)
         self.cv_service_msgs = None
-
+        self.mc.detach_client_service_pair(self.sg_service_msgs)
+        self.sg_service_msgs = None
         # Detach Guidance ground mode messages
         self.mc.detach_client_service_pair(self.gdnc_grd_mode_msgs)
         self.gdnc_grd_mode_msgs = None
@@ -167,7 +169,8 @@ class Mission(AbstractMission):
         # Stop Computer Vision service channel
         self.mc.stop_channel(self.cv_service_msgs_channel)
         self.cv_service_msgs_channel = None
-
+        self.mc.stop_channel(self.sg_service_msgs_channel)
+        self.sg_service_msgs_channel = None
         # Detach mission UI messages
         self.ext_ui_msgs.detach()
 

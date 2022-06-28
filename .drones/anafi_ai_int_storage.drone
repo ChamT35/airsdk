@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<drone name="anafi_ai"
+
+       hardware="anafi2">
+  <pose>default</pose>
+  <wifi_iface>auto</wifi_iface>
+  <wan_access>false</wan_access>
+  <remote_ctrl_ip></remote_ctrl_ip>
+  <int_storage_size>5G</int_storage_size>
+  <ext_storage_size>10G</ext_storage_size>
+  <with_front_cam>1</with_front_cam>
+  <with_gimbal>1</with_gimbal>
+  <with_front_stcam>1</with_front_stcam>
+  <photo_high_res>0</photo_high_res>
+  <invisible_body>0</invisible_body>
+
+</drone>
