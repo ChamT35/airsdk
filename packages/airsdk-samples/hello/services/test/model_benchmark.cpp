@@ -17,13 +17,15 @@ float benchmark(torch::jit::script::Module module) {
   at::Tensor img_tensor = torch::rand({1, 3, 224, 224});
   inputs.push_back(img_tensor);
   start = std::chrono::system_clock::now();
-
+  //Tested function
   module.forward(inputs);
 
   end = std::chrono::system_clock::now();
   duration = end - start;
   return duration.count() * 0.001f * 0.001f;
 }
+
+// int model_size_estimation()
 
 int main(int argc, const char *argv[]) {
   float duration;
@@ -62,6 +64,7 @@ int main(int argc, const char *argv[]) {
       if ((iter > 9)) {
         std::cout << "Traitement : ";
       }
+      // Test Loop
       for (int i = 0; i < iter; ++i) {
         duration = benchmark(module);
         duration_list.push_back(duration);
