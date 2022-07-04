@@ -1,4 +1,4 @@
-from msghub_utils import msg_id
+from msghub_utils import is_msg
 from fsup.genstate import State, guidance_modes
 import colibrylite.estimation_mode_pb2 as cbry_est
 
