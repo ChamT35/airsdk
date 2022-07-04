@@ -19,8 +19,6 @@ def test_hello_mission():
     logger.warning("Chargement de la mission")
     drone = olympe.Drone(DRONE_IP)
     with drone.mission.from_path(HELLO_MISSION_URL).open() as hello:
-        
-        # Mission messages modules are now available from the Python path
 
         from olympe.airsdk.messages.parrot.missions.samples.hello.Command import Hold, Say
         from olympe.airsdk.messages.parrot.missions.samples.hello.Event import count
@@ -40,8 +38,6 @@ def test_hello_mission():
 
         logger.warning("Drone Connecté")
 
-        # load and activate the hello mission
-
         mission_activated = drone(
             mission.load(uid=hello.uid)
             >> mission.activate(uid=hello.uid)
@@ -50,10 +46,10 @@ def test_hello_mission():
         assert mission_activated.wait(), mission_activated.explain()
 
         logger.warning("Hello mission activé")
-        # Make the drone say hello (nod its gimbal)
-
+        
         assert drone(Say()).wait()
         counter = None
+
         logger.warning("Mission : Hello")
         # Wait for 3 nod of the drone gimbal
 
