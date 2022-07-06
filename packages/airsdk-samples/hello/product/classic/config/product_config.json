@@ -8,7 +8,7 @@
 		}
 	},
 	"signature": {
-		"key": "",
+		"key": "ecdsa:local:classic/key.pem",
 		"classic": {
 			"images": [
 				{ "in": "com.parrot.missions.samples.hello.tar.gz" }

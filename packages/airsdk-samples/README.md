@@ -54,4 +54,3 @@ documentation.
 # Drone upload (and set mission to default)
 ./build.sh -p hello-classic -t sync --is-default --reboot
 ```
-

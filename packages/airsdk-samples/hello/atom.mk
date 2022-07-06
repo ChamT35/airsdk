@@ -1,4 +1,5 @@
 LOCAL_PATH := $(call my-dir)
+MAIN_PATH := $(LOCAL_PATH)
 
 airsdk-hello.name        := hello
 airsdk-hello.uid         := com.parrot.missions.samples.$(airsdk-hello.name)
@@ -6,13 +7,14 @@ airsdk-hello.payload-dir := missions/$(airsdk-hello.uid)/payload
 
 airsdk-hello.fsup-dir        := $(airsdk-hello.payload-dir)/fsup
 airsdk-hello.guidance-dir    := $(airsdk-hello.payload-dir)/guidance
-
+airsdk-hello.services-dir	 := $(airsdk-hello.payload-dir)/services
 # Copy all files relative to SOURCE/ that match *.SUFIX into TARGET
 # ($1:SOURCE $2:SUFFIX $3:TARGET)
 
 copy-all-under = $(foreach __f,\
 	$(call all-files-under,$1,$2),\
 	$(eval LOCAL_COPY_FILES += $(__f):$(patsubst $1/%,$3/%,$(__f))))
+
 
 #############################################################
 # Copy autopilot mission files (fsup/guidance python)
@@ -98,7 +100,6 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := airsdk-hello-cv-service
 LOCAL_CATEGORY_PATH := airsdk/missions/samples/hello
 LOCAL_DESTDIR := $(airsdk-hello.payload-dir)/services
-
 LOCAL_SRC_FILES := services/native/processing.cpp services/native/sample.cpp
 
 LOCAL_LIBRARIES := \
@@ -167,3 +168,27 @@ $(foreach __f,$(cv_service_proto_files), \
 )
 
 include $(BUILD_LIBRARY)
+
+# #############################################################
+# # Create Jpeg file
+
+# include $(CLEAR_VARS)
+
+# LOCAL_MODULE := libairsdk-hello-cv-service-msghub
+# LOCAL_CATEGORY_PATH := airsdk/missions/samples/hello
+
+# LOCAL_SRC_FILES = src/save.cpp
+
+# LOCAL_LIBRARIES := libjpeg-turbo
+
+# include $(BUILD_LIBRARY)
+
+#############################################################
+# Adding Singulair Service
+
+include $(MAIN_PATH)/services/singulair/atom.mk
+
+#############################################################
+# Adding Test executable
+
+include $(MAIN_PATH)/services/test/atom.mk
