@@ -26,7 +26,9 @@ LOCAL_LIBRARIES := \
 	singulair-ia \
 	singulair-utils-convertion \
 	singulair-utils-performance \
-	opencv4
+	opencv4 \
+	libjpeg
+
 # singulair-opencv4 
 
 $(foreach _f, $(call all-files-under,torch/model/,.pt), \

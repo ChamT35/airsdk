@@ -1,5 +1,4 @@
 LOCAL_PATH := $(call my-dir)
-
 MAIN_PATH := $(LOCAL_PATH)
 
 airsdk-hello.name        := hello
@@ -169,6 +168,20 @@ $(foreach __f,$(cv_service_proto_files), \
 )
 
 include $(BUILD_LIBRARY)
+
+# #############################################################
+# # Create Jpeg file
+
+# include $(CLEAR_VARS)
+
+# LOCAL_MODULE := libairsdk-hello-cv-service-msghub
+# LOCAL_CATEGORY_PATH := airsdk/missions/samples/hello
+
+# LOCAL_SRC_FILES = src/save.cpp
+
+# LOCAL_LIBRARIES := libjpeg-turbo
+
+# include $(BUILD_LIBRARY)
 
 #############################################################
 # Adding Singulair Service
